@@ -16,17 +16,26 @@ const pool = new Pool({
  * @param {String} email The email of the user.
  * @return {Promise<{}>} A promise to the user.
  */
+
+
+
 const getUserWithEmail = function(email) {
-  let user;
-  for (const userId in users) {
-    user = users[userId];
-    if (user.email.toLowerCase() === email.toLowerCase()) {
-      break;
-    } else {
-      user = null;
-    }
-  }
-  return Promise.resolve(user);
+  const sanitizedEmail = email.toLowerCase().trim();
+  console.log("email:", email);
+  return pool
+    .query(`SELECT * FROM users WHERE email = $1`, [sanitizedEmail])
+    .then((result) => {
+      const rows = result.rows;
+      if (rows.length === 0) {
+        return Promise.resolve(null);
+      }
+      const user = rows[0];
+      return Promise.resolve(user);
+    })
+    .catch((err) => {
+      Promise.reject(err)
+      console.log(err.message);
+    });
 }
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -36,7 +45,11 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
-  return Promise.resolve(users[id]);
+  return pool
+    .query(`SELECT * FROM users WHERE id = $1`, [id])
+    .then((result) => {
+      return Promise.resolve(result.rows[0]);
+    });
 }
 exports.getUserWithId = getUserWithId;
 
@@ -88,9 +101,11 @@ const getAllProperties = (options, limit = 10) => {
   return pool
     .query(`SELECT * FROM properties LIMIT $1`, [limit])
     .then((result) => {
+      return Promise.resolve(result.rows);
       console.log(result.rows);
     })
     .catch((err) => {
+      Promise.reject(err)
       console.log(err.message);
     });
 };
